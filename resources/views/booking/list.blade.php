@@ -28,6 +28,10 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peminjam</th>
+                                
+                                {{-- KOLOM WA PEMINJAM --}}
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WA Peminjam</th>
+                                
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gedung</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kegiatan</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Pinjam</th>
@@ -39,13 +43,25 @@
                             @foreach ($bookings as $booking)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">{{ $booking->user->name }}</td>
+                                
+                                {{-- DATA WA PEMINJAM --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div class="font-medium text-gray-900">{{ $booking->user->whatsapp_number }}</div>
+                                    @if($booking->user->whatsapp_number)
+                                    <a href="https://wa.me/{{ $booking->user->whatsapp_number }}" target="_blank" class="text-green-600 hover:text-green-800 text-xs">
+                                        (Hubungi via WA)
+                                    </a>
+                                    @endif
+                                </td>
+                                
                                 <td class="px-6 py-4 whitespace-nowrap">{{ $booking->gedung->nama_gedung }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">{{ $booking->nama_kegiatan }}</td>
                                 
-                                {{-- TAMPILAN WAKTU DAN JAM DENGAN FORMAT INDONESIA --}}
+                                {{-- TAMPILAN WAKTU DAN JAM DENGAN FORMAT 24 JAM (HH:mm) --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     Mulai: <strong>{{ \Carbon\Carbon::parse($booking->waktu_mulai)->locale('id')->isoFormat('D MMM YYYY, HH:mm') }}</strong><br>
-                                    Selesai: <strong>{{ \Carbon\Carbon::parse($booking->waktu_selesai)->locale('id')->isoFormat('HH:mm') }}</strong>
+                                    {{-- Menggunakan format PHP 'H:i' untuk memaksa 24 jam --}}
+                                    Selesai: <strong>{{ \Carbon\Carbon::parse($booking->waktu_selesai)->format('H:i') }}</strong> 
                                 </td>
                                 
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -65,7 +81,7 @@
                                         <form method="POST" action="{{ route('booking.update-status', $booking) }}" class="inline-block">
                                             @csrf
                                             <input type="hidden" name="status" value="approved">
-                                            <button type="submit" class="text-indigo-600 hover:text-indigo-900 mr-2">Setujui</button>
+                                            <button type="submit" class="text-primary-600 hover:text-primary-900 mr-2">Setujui</button>
                                         </form>
                                         <form method="POST" action="{{ route('booking.update-status', $booking) }}" class="inline-block">
                                             @csrf
@@ -73,11 +89,19 @@
                                             <button type="submit" class="text-red-600 hover:text-red-900">Tolak</button>
                                         </form>
                                     @elseif($booking->status === 'approved')
-                                        {{-- Tombol Cetak PDF --}}
-                                        <a href="{{ route('booking.pdf', $booking) }}" target="_blank" class="text-green-600 hover:text-green-800">
-                                            Cetak Surat (PDF)
-                                        </a>
+                                        <span class="text-green-600 text-xs mr-2">DISETUJUI</span>
+                                    @elseif($booking->status === 'rejected')
+                                        <span class="text-gray-600 text-xs mr-2">DITOLAK</span>
                                     @endif
+                                    
+                                    {{-- TOMBOL DELETE UNIVERSAL --}}
+                                    <form method="POST" action="{{ route('booking.destroy', $booking) }}" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus booking ini? Tindakan ini permanen.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-400 hover:text-red-600">
+                                            Hapus
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                             @endforeach

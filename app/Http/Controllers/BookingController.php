@@ -7,6 +7,7 @@ use App\Models\Gedung;
 use App\Models\Booking;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf; 
+use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -17,13 +18,21 @@ class BookingController extends Controller
         
         // === LOGIKA PENDING COUNT UNTUK BADGE ADMIN ===
         $pendingCount = 0;
-        // Hanya hitung jika user sudah login dan memiliki role Admin
         if (Auth::check() && (Auth::user()->name === 'Admin Dinas' || Auth::user()->id === 1)) {
              $pendingCount = Booking::where('status', 'pending')->count();
         }
+        
+        // === DATA UNTUK JADWAL DINAMIS (PENGGANTI KALENDER) ===
+        $approvedBookings = Booking::with('gedung')
+                            ->where('status', 'approved')
+                            // Hanya ambil jadwal yang belum berakhir
+                            ->where('waktu_selesai', '>', Carbon::now()) 
+                            ->orderBy('waktu_mulai', 'asc')
+                            ->limit(10) // 10 jadwal terdekat
+                            ->get();
         // ===================================
         
-        return view('dashboard', compact('gedungs', 'pendingCount')); // Kirimkan $pendingCount
+        return view('dashboard', compact('gedungs', 'pendingCount', 'approvedBookings'));
     }
 
     // Menyimpan data booking dari formulir (dengan Validasi Jam/Waktu)
@@ -66,55 +75,42 @@ class BookingController extends Controller
     }
 
     // ----------------------------------------------------------------
-    // FUNGSI UNTUK ADMIN (LIST DAN UPDATE STATUS)
+    // FUNGSI ADMIN: DAFTAR, UPDATE, DAN HAPUS
     // ----------------------------------------------------------------
-
-    public function list()
+    public function list() 
     {
         $bookings = Booking::with(['user', 'gedung'])->orderBy('created_at', 'desc')->get();
         return view('booking.list', compact('bookings'));
     }
-
-    public function updateStatus(Request $request, Booking $booking)
+    
+    public function updateStatus(Request $request, Booking $booking) 
     {
-        $request->validate([
-            'status' => 'required|in:approved,rejected'
-        ]);
-        
-        $booking->update([
-            'status' => $request->status
-        ]);
-
+        $request->validate(['status' => 'required|in:approved,rejected']);
+        $booking->update(['status' => $request->status]);
         return redirect()->route('booking.list')->with('success', 'Status booking berhasil diperbarui.');
     }
     
-    // ----------------------------------------------------------------
-    // FUNGSI PDF GENERATOR
-    // ----------------------------------------------------------------
-
-    public function generatePdf(Booking $booking)
+    // === METHOD BARU: MENGHAPUS BOOKING ===
+    public function destroy(Booking $booking)
     {
-        if ($booking->status !== 'approved') {
-            return redirect()->route('booking.list')->with('error', 'Surat hanya bisa dicetak jika status sudah disetujui.');
-        }
+        $booking->delete();
+        return redirect()->route('booking.list')->with('success', '✅ Booking berhasil dihapus dari sistem.');
+    }
 
-        $pdf = Pdf::loadView('booking.pdf_surat', compact('booking'));
-        
-        $tanggal_format = \Carbon\Carbon::parse($booking->waktu_mulai)->format('Ymd');
-        $filename = 'SURAT_IZIN_' . $booking->gedung->nama_gedung . '_' . $tanggal_format . '.pdf';
-
-        return $pdf->download($filename);
+    // ----------------------------------------------------------------
+    // FUNGSI LAIN (TIDAK LAGI DIGUNAKAN UNTUK FITUR UTAMA)
+    // ----------------------------------------------------------------
+    
+    // Method ini dipertahankan tetapi hanya me-redirect karena tombol cetak dihapus
+    public function generatePdf(Booking $booking) 
+    {
+         return redirect()->route('booking.list')->with('error', 'Fitur cetak PDF sudah dihapus dari sistem.');
     }
     
-    // ----------------------------------------------------------------
-    // FUNGSI KALENDER EVENTS (Endpoint API)
-    // ----------------------------------------------------------------
-
-    public function calendarEvents(Request $request)
+    public function calendarEvents(Request $request) 
     {
         $bookings = Booking::where('status', 'approved')->get();
         $events = [];
-
         foreach ($bookings as $booking) {
             $events[] = [
                 'title' => $booking->gedung->nama_gedung . ' - TERISI',
@@ -125,41 +121,20 @@ class BookingController extends Controller
                 'allDay' => false,
             ];
         }
-
         return response()->json($events);
     }
-    
-    // ----------------------------------------------------------------
-    // FUNGSI BARU: LAPORAN REKAPITULASI BULANAN
-    // ----------------------------------------------------------------
     
     public function monthlyReport(Request $request)
     {
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
-
-        $bookings = Booking::with('gedung', 'user')
-            ->whereYear('waktu_mulai', $year)
-            ->whereMonth('waktu_mulai', $month)
-            ->orderBy('waktu_mulai', 'asc')
-            ->get();
-            
+        $bookings = Booking::with('gedung', 'user')->whereYear('waktu_mulai', $year)->whereMonth('waktu_mulai', $month)->orderBy('waktu_mulai', 'asc')->get();
         $summary = [
-            'total' => $bookings->count(),
-            'approved' => $bookings->where('status', 'approved')->count(),
-            'pending' => $bookings->where('status', 'pending')->count(),
-            'rejected' => $bookings->where('status', 'rejected')->count(),
+            'total' => $bookings->count(), 'approved' => $bookings->where('status', 'approved')->count(),
+            'pending' => $bookings->where('status', 'pending')->count(), 'rejected' => $bookings->where('status', 'rejected')->count(),
         ];
-
-        $months = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', 
-            '04' => 'April', '05' => 'Mei', '06' => 'Juni',
-            '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
-            '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-        ];
-        
+        $months = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni','07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
         $years = range(date('Y') - 3, date('Y') + 1);
-
         return view('report.monthly', compact('bookings', 'summary', 'months', 'years', 'month', 'year'));
     }
 }

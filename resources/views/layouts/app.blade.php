@@ -38,11 +38,20 @@
         </div>
         
         {{-- === SCRIPT FULLCALENDAR JS DARI CDN (Wajib di sini agar dimuat terakhir) === --}}
+        {{-- Dibiarkan karena mungkin masih ada kode yang mengandalkannya, meskipun Kalender utama diganti tabel. --}}
         <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
         
         {{-- Tempat script dari View lain dijalankan --}}
         @stack('scripts')
+        
+        {{-- === FOOTER COPYRIGHT BARU === --}}
+        <footer class="bg-white border-t border-gray-200 mt-8 py-4">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
+                &copy; {{ date('Y') }} Booking Gedung Dinkes Kabupaten Garut.
+            </div>
+        </footer>
+        {{-- ============================== --}}
         
     </body>
 </html>

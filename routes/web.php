@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BookingController; 
-use Illuminate\Support\Facades\Auth; // Tambahkan ini agar Auth::check() bisa digunakan di route '/'
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,12 +31,16 @@ Route::middleware(['auth'])->group(function () {
     // Rute ADMIN: Daftar Booking dan Aksi
     Route::get('/bookings', [BookingController::class, 'list'])->name('booking.list');
     Route::post('/bookings/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('booking.update-status');
-    Route::get('/bookings/{booking}/pdf', [BookingController::class, 'generatePdf'])->name('booking.pdf');
+    
+    // RUTE LAMA (PDF) DIHAPUS: Route::get('/bookings/{booking}/pdf', [BookingController::class, 'generatePdf'])->name('booking.pdf');
+    
+    // === RUTE BARU: HAPUS BOOKING ===
+    Route::delete('/bookings/{booking}/delete', [BookingController::class, 'destroy'])->name('booking.destroy');
     
     // Rute API: Kalender Ketersediaan (dipanggil oleh JavaScript)
     Route::get('/calendar-events', [BookingController::class, 'calendarEvents'])->name('calendar.events');
     
-    // === RUTE BARU: LAPORAN REKAPITULASI BULANAN ===
+    // RUTE LAPORAN REKAPITULASI BULANAN
     Route::get('/report/monthly', [BookingController::class, 'monthlyReport'])->name('report.monthly');
 
 });

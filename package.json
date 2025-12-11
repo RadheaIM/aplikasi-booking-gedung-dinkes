@@ -20,6 +20,7 @@
         "tailwindcss": "^3.1.0"
     },
     "dependencies": {
+        "@alpinejs/collapse": "^3.15.2",
         "@fullcalendar/core": "^6.1.19",
         "@fullcalendar/daygrid": "^6.1.19",
         "fullcalendar": "^6.1.19",

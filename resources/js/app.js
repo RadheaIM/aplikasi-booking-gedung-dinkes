@@ -1,5 +1,6 @@
 import './bootstrap';
 import Alpine from 'alpinejs';
+import collapse from '@alpinejs/collapse';
 
 // === IMPORT DAN EXPORT FULLCALENDAR BARU ===
 import { Calendar } from '@fullcalendar/core';
@@ -20,4 +21,5 @@ window.FullCalendar = {
 // ===========================================
 
 window.Alpine = Alpine;
+Alpine.plugin(collapse);
 Alpine.start();

@@ -33,12 +33,21 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            
+            // === TAMBAHAN NOMOR WHATSAPP: VALIDASI ===
+            'whatsapp_number' => ['required', 'string', 'max:15', 'unique:'.User::class], 
+            // Max 15 digit dan wajib diisi saat registrasi
+            
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            
+            // === TAMBAHAN NOMOR WHATSAPP: PENYIMPANAN DATA ===
+            'whatsapp_number' => $request->whatsapp_number, 
+            
             'password' => Hash::make($request->password),
         ]);
 
